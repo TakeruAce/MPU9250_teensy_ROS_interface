@@ -12,9 +12,11 @@ ros::NodeHandle nh;
 sensor_msgs::Imu msg_imu;
 geometry_msgs::Vector3Stamped msg_ang_acc;
 geometry_msgs::Vector3Stamped msg_ang_acc_raw;
+geometry_msgs::Vector3Stamped msg_grav_dir;
 
 ros::Publisher responser_ang_acc("angular_acc", &msg_ang_acc);
 ros::Publisher responser_ang_acc_raw("angular_acc_raw", &msg_ang_acc_raw);
+ros::Publisher responser_grav_dir("grav_dir", &msg_grav_dir);
 ros::Publisher responser_imu("imu1", &msg_imu);
 
 MPU9250_ANGACC Imu(Wire,0x68);
@@ -53,6 +55,7 @@ void setup() {
   nh.initNode();
   nh.advertise(responser_ang_acc);
   nh.advertise(responser_ang_acc_raw);
+  nh.advertise(responser_grav_dir);
   nh.advertise(responser_imu);
 }
 
@@ -101,12 +104,19 @@ void IMUUpdate() {
   // msg_imu.orientation.z = quaternion[3];
   msg_ang_acc.header.stamp = nh.now();
   msg_ang_acc_raw.header.stamp = nh.now();    
+  msg_grav_dir.header.stamp = nh.now();    
 
   // calucrate quaternion by madgwick filter
   filter.update(Imu.getGyroX_rads(),Imu.getGyroY_rads(),Imu.getGyroZ_rads(),
                  Imu.getAccelX_mss(),Imu.getAccelY_mss(),Imu.getAccelZ_mss(),
                     Imu.getMagX_uT(),Imu.getMagY_uT(),Imu.getMagZ_uT());
 
+  // get quaternion from madgwick and compute gravity direction
+  vector<float> grav_dir = filter.computeGravityDirection();
+
+  msg_grav_dir.vector.x = grav_dir[0];
+  msg_grav_dir.vector.y = grav_dir[1];
+  msg_grav_dir.vector.z = grav_dir[2];
   IMUUpdateThreadTimer = micros();
 }
 
@@ -115,5 +125,6 @@ void publishData() {
   // if (micros() - PublishDataThreadTimer < 5000) return;
   responser_ang_acc.publish( &msg_ang_acc );
   responser_ang_acc_raw.publish( &msg_ang_acc_raw );
+  responser_grav_dir.publish( &msg_grav_dir );
   responser_imu.publish( &msg_imu );
 }
