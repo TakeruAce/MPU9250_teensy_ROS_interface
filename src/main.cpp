@@ -5,7 +5,6 @@
 #include <geometry_msgs/Vector3Stamped.h>
 #include <LPfilter.hpp>
 #include <MadgwickAHRS.h>
-#include <MPU9250_Qavairable.hpp>
 
 
 ros::NodeHandle nh;
